@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "3yH4u6H7y+UX8Fxg4AUxCD0uIbvMT+eiJ6nHQgJcywXI9rwfqi3F/ETGS3imv+7/qKOL0+RHEYx4RuKFQEVDvQ==",
+  "success": true,
+  "projectFilePath": "D:\\work\\2020\\code\\ast\\tool\\tool.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\gongj\\.nuget\\packages\\microsoft.netcore.platforms\\1.1.0\\microsoft.netcore.platforms.1.1.0.nupkg.sha512",
+    "C:\\Users\\gongj\\.nuget\\packages\\netstandard.library\\2.0.3\\netstandard.library.2.0.3.nupkg.sha512"
+  ],
+  "logs": []
+}
