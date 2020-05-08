@@ -1,9 +1,0 @@
-D:\work\2020\code\ast\tool\bin\Debug\netstandard2.0\tool.deps.json
-D:\work\2020\code\ast\tool\bin\Debug\netstandard2.0\tool.dll
-D:\work\2020\code\ast\tool\bin\Debug\netstandard2.0\tool.pdb
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.csprojAssemblyReference.cache
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.csproj.CoreCompileInputs.cache
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.AssemblyInfoInputs.cache
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.AssemblyInfo.cs
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.dll
-D:\work\2020\code\ast\tool\obj\Debug\netstandard2.0\tool.pdb
