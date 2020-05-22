@@ -11,10 +11,16 @@ It's like a basic AST(Abstract Syntax Tree) problem.
 Got real inspiration from https://github.com/DoctorWkt/acwj.
 
 Begin writting an boolean_checker in C#. 
+
 Should support：
+
 1.computing operator + and - and * and /
+
 2.logic operators like 'AND' and 'OR' and 'LIKE' and '==' and '!=' and '>' and '<' and '>=' and '<='
+
 3.Parentheses （ and )
+
 4.Able to check the rule is syntax correct.
+
 5.replace [field] with real value by a json input, do boolean check and return TRUE or FALSE
 
