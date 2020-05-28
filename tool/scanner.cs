@@ -226,14 +226,16 @@ namespace ast.tool
                         t.token = TOKEN_TYPE.T_EQUALEQUAL;
                     } else {
                         putback(c);
-                        t.token = TOKEN_TYPE.T_EQUAL;
+                         throw new ArgumentException("Unrecognised character " + (char)c + " on line " + iLine
+                        + " at position " + ipos);
                     }
                     break;
                 case '!':
                     if ((c = next()) == '=') {
                         t.token = TOKEN_TYPE.T_NOTEQUAL;
                     } else {
-                        Console.WriteLine("Unrecognised character");
+                         throw new ArgumentException("Unrecognised character " + (char)c + " on line " + iLine
+                        + " at position " + ipos);
                         //fatalc("Unrecognised character", c);
                     }
                     break;
@@ -268,7 +270,7 @@ namespace ast.tool
                         t.token = TOKEN_TYPE.T_VAR;
                         t.strName = buf;
                         break;
-                    }  else if (c == '\'')  //[var]
+                    }  else if (c == '\'')  //[str]
                     {
                         string buf;
                         scanstr(c, out buf);
@@ -354,7 +356,7 @@ namespace ast.tool
             else 
             // Get the integer literal on the left.
             // Fetch the next token at the same time.
-                left = primary(ref token);
+            left = primary(ref token);
             // If no tokens left, return just the left node
             tokentype = token.token;
             if (tokentype == TOKEN_TYPE.T_EOF || tokentype == TOKEN_TYPE.T_RRND)
@@ -445,7 +447,7 @@ namespace ast.tool
         private int[] OpPrec = {
             0, 10, 10,			// T_EOF, A_AND = 1, A_OR
             20, 20,	30, 30, 0,		// A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_INTLIT
-            10, 10,	10, 10, 10, 10,		// A_EQUALEQUAL, A_NOTEQUAL, A_LESSTHAN, A_LESSEQUAL, A_LARGETHAN, A_LARGEEQUAL, 
+            11, 11,	11, 11, 11, 11,		// A_EQUALEQUAL, A_NOTEQUAL, A_LESSTHAN, A_LESSEQUAL, A_LARGETHAN, A_LARGEEQUAL, 
             20,		// A_LIKE,
             0, 0,  //A_LRND, A_RRND,
             10,        //A_EQUAL
@@ -496,6 +498,98 @@ namespace ast.tool
                 return(1);
             }
         }
+
+        public bool checkAST(ref AstNode n) {
+            AstNode leftval , rightval ;
+
+            if (n.leftLeaf != null)  {
+                if (!checkAST(ref n.leftLeaf))
+                    return false;
+            }
+            if (n.rightLeaf != null) {
+                if (!checkAST(ref n.rightLeaf))
+                    return false;
+            } 
+            leftval = n.leftLeaf;
+            rightval = n.rightLeaf;
+            switch (n.op) {
+                case ASTNODE_TYPE.A_ADD:      
+                case ASTNODE_TYPE.A_SUBTRACT: 
+                case ASTNODE_TYPE.A_MULTIPLY: 
+                case ASTNODE_TYPE.A_DIVIDE:  
+                case ASTNODE_TYPE.A_EQUALEQUAL: 
+                case ASTNODE_TYPE.A_NOTEQUAL: 
+                case ASTNODE_TYPE.A_LESSTHAN: 
+                case ASTNODE_TYPE.A_LESSEQUAL: 
+                case ASTNODE_TYPE.A_LARGETHAN: 
+                case ASTNODE_TYPE.A_LARGEEQUAL: 
+                case ASTNODE_TYPE.A_LIKE: 
+                    if (!isValueNode(leftval))
+                        throw new ArgumentException("Syntax error, field " +  leftval.op );
+                    if (!isValueNode(rightval))
+                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                    return true; 
+                        
+                case ASTNODE_TYPE.A_INTLIT:   
+                    //n.bValue = n.intValue > 0? true:false;
+                    return true;
+                case ASTNODE_TYPE.A_LRND: 
+                    n.intValue = leftval.intValue;
+                    n.bValue = leftval.bValue;
+                    n.strName = leftval.strName;
+                    n.op = leftval.op;
+                    return true;
+                case ASTNODE_TYPE.A_RRND: return true;
+                case ASTNODE_TYPE.A_AND: 
+                case ASTNODE_TYPE.A_OR: 
+                    if (!isLogicNode(leftval))
+                        throw new ArgumentException("Syntax error, field " +  leftval.op );
+                    if (!isLogicNode(rightval))
+                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                    return true; 
+                    
+                case ASTNODE_TYPE.A_VAR: 
+                    //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
+                    
+                    break;
+                case ASTNODE_TYPE.A_STR: 
+                    //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
+                    break;
+                default:
+                    throw new ArgumentException("Syntax error, field " +  n.op );
+                    //return false;
+                //fprintf(stderr, "Unknown AST operator %d\n", n->op);
+                //return true;
+            }
+            return true;
+        }
+
+        public bool isLogicNode(AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_AND ||
+                n.op == ASTNODE_TYPE.A_OR ||
+                n.op == ASTNODE_TYPE.A_EQUALEQUAL ||
+                n.op == ASTNODE_TYPE.A_NOTEQUAL ||
+                n.op == ASTNODE_TYPE.A_LESSTHAN ||
+                n.op == ASTNODE_TYPE.A_LESSEQUAL ||
+                n.op == ASTNODE_TYPE.A_LARGETHAN ||
+                n.op == ASTNODE_TYPE.A_LARGEEQUAL ||
+                n.op == ASTNODE_TYPE.A_LIKE)
+                return true;
+            else    
+                return false;
+        }
+
+        public bool isValueNode(AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_VAR ||
+                n.op == ASTNODE_TYPE.A_INTLIT ||
+                n.op == ASTNODE_TYPE.A_STR)
+                return true;
+            else    
+                return false;
+        }
+
 
         public void interpretAST2(ref AstNode n) {
             AstNode leftval , rightval ;

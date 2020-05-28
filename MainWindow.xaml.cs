@@ -26,7 +26,7 @@ namespace ast
             InitializeComponent();
             ts_json.AcceptsReturn = true;
             ts.AcceptsReturn = true;
-            ts.Text = "([Field1] like 'CN') AND 5 + 6 AND (1==1)";
+            ts.Text = "([Field1] like 'CN') AND (5 + 6) AND (1==1)";
             ts_json.Text = @"{
                 'Field1': 'CNSHA'
                 }";
@@ -44,7 +44,10 @@ namespace ast
             try {
                 scanner.scan(ref token);
                 node = scanner.binexpr(0, ref token);
-                MessageBox.Show("rule is ok");
+                if (scanner.checkAST(ref node))
+                    MessageBox.Show("rule is ok");
+                else
+                    MessageBox.Show("rule is not ok");
                 //scanner.setJson(strValue);
                 //scanner.interpretAST2(ref node);
             } catch (Exception e)
