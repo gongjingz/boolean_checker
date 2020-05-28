@@ -1,4 +1,5 @@
 bin/
 obj/
-newtonsoft.json/
+tool/bin
+tool/obj
 .vscode
