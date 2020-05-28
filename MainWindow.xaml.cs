@@ -25,9 +25,10 @@ namespace ast
         {
             InitializeComponent();
             ts_json.AcceptsReturn = true;
-            ts.Text = "([loadport] like 'VN') AND 5 + 6 AND (1==1)";
+            ts.AcceptsReturn = true;
+            ts.Text = "([Field1] like 'CN') AND 5 + 6 AND (1==1)";
             ts_json.Text = @"{
-                'loadport': 'CNSHA'
+                'Field1': 'CNSHA'
                 }";
         }
 

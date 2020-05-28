@@ -1,8 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+
+
   <ItemGroup>
-    <ProjectReference Include="tool.csproj" />
+    <PackageReference Include="newtonsoft.json" Version="12.0.3" />
   </ItemGroup>
+
+
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
