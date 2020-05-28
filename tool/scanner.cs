@@ -1,5 +1,9 @@
 using System;
 using System.Text;
+using Newtonsoft.Json;
+using System.IO;
+using System.Collections.Generic;
+
 namespace ast.tool
 {
 
@@ -11,16 +15,43 @@ namespace ast.tool
         private int Putback;  //暂存字符
         private const int EOF = -1;
         private String json_str;
+
+        private Dictionary<String , String> value_dic; 
         public Scanner(String in_str)
         {
             this.scan_str = in_str;
             ipos = 0;
             iLine = 1;
             Putback = 0;
+            value_dic = new Dictionary<String, String>();
         }
 
         public void setJson(String json_str)
         {
+            String temp_name = "";
+            JsonTextReader reader = new JsonTextReader(new StringReader(json_str));
+            while (reader.Read())
+            {
+                if (reader.Value != null)
+                {
+                    if (reader.TokenType == JsonToken.PropertyName)
+                    {
+                        temp_name = reader.Value.ToString();
+                    }
+                    else {
+                        if (temp_name != "")
+                        {
+                            value_dic.Add(temp_name, reader.Value.ToString());
+                            temp_name = "";
+                        }
+                    }
+                    Console.WriteLine("Token: {0}, Value: {1}", reader.TokenType, reader.Value);
+                }
+                else
+                {
+                    Console.WriteLine("Token: {0}", reader.TokenType);
+                }
+            }
             this.json_str = json_str;
         }
 
@@ -525,7 +556,13 @@ namespace ast.tool
                     break;
                 case ASTNODE_TYPE.A_VAR: 
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
-                    
+                    String var_value = "";
+                    if (value_dic.TryGetValue(n.strName, out var_value) == false)
+                        {
+                            throw new ArgumentException("Syntax error, field " +  n.strName + " has no mapping value" );
+                        }
+                    else
+                        n.strName = var_value;
                     break;
                 case ASTNODE_TYPE.A_STR: 
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;

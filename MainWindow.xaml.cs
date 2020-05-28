@@ -24,12 +24,39 @@ namespace ast
         public MainWindow()
         {
             InitializeComponent();
+            ts_json.AcceptsReturn = true;
+            ts.Text = "([loadport] like 'VN') AND 5 + 6 AND (1==1)";
+            ts_json.Text = @"{
+                'loadport': 'CNSHA'
+                }";
         }
 
         public void Mybutton_click(object sender, RoutedEventArgs a)
         {
-            String strValue = ts.Text;
-            String test_str = "([loadport] like 'VN') AND 5 + 6 AND (1==1)";
+            //String strValue = ts.Text;
+            String test_str = ts.Text;
+
+            Scanner scanner = new Scanner(test_str);
+
+            Token token = new Token();
+            AstNode node;
+            try {
+                scanner.scan(ref token);
+                node = scanner.binexpr(0, ref token);
+                MessageBox.Show("rule is ok");
+                //scanner.setJson(strValue);
+                //scanner.interpretAST2(ref node);
+            } catch (Exception e)
+            {
+                MessageBox.Show("Rule format wrong " + e.Message);
+            }
+            
+        }
+
+        public void Mybutton2_click(object sender, RoutedEventArgs a)
+        {
+            String strValue = ts_json.Text;
+            String test_str = ts.Text;
 
             Scanner scanner = new Scanner(test_str);
 
@@ -40,11 +67,18 @@ namespace ast
                 node = scanner.binexpr(0, ref token);
                 scanner.setJson(strValue);
                 scanner.interpretAST2(ref node);
+                if (node.bValue == true)
+                {
+                    MessageBox.Show("rule evaluated : True");
+                }
+                else
+                {
+                    MessageBox.Show("rule evaluated : False");
+                }
             } catch (Exception e)
             {
                 MessageBox.Show(e.Message);
             }
-            MessageBox.Show("here");
         }
     }
 }
