@@ -622,12 +622,21 @@ namespace ast.tool
             throw new ArgumentException("Syntax error, invalid number " +  n.strName );
         }
 
+        public bool parseVartoStr(ref AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_VAR || n.op == ASTNODE_TYPE.A_STR) 
+            {
+                return true;
+            }
+            if (n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n)) {
+                n.strName = n.intValue.ToString();
+                return true;
+            }
+            throw new ArgumentException("Syntax error, invalid parameter " +  n.op );
+        }
+
 
         public void interpretAST2(ref AstNode n) {
-            //if (!checkAST(ref n))
-            //{
-            //    return;
-            //}
             AstNode leftval , rightval ;
             if (n.leftLeaf != null)  interpretAST2(ref n.leftLeaf);
             if (n.rightLeaf != null)  interpretAST2(ref n.rightLeaf);
@@ -662,10 +671,12 @@ namespace ast.tool
                     return ;
                 case ASTNODE_TYPE.A_RRND: return ;
                 case ASTNODE_TYPE.A_AND: 
-                    n.bValue = leftval.bValue  && rightval.bValue;
+                    if (isLogicNode(leftval) && isLogicNode(rightval))
+                        n.bValue = leftval.bValue  && rightval.bValue;
                     break;
                 case ASTNODE_TYPE.A_OR: 
-                    n.bValue = leftval.bValue  || rightval.bValue;
+                    if (isLogicNode(leftval) && isLogicNode(rightval))
+                        n.bValue = leftval.bValue || rightval.bValue;
                     break;
                 case ASTNODE_TYPE.A_EQUALEQUAL: 
                     if (leftval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(leftval))
@@ -737,7 +748,8 @@ namespace ast.tool
                         n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_LIKE: 
-                    n.bValue = leftval.strName.IndexOf(rightval.strName) >= 0? true:false ;
+                    if (parseVartoStr(ref leftval) && parseVartoStr(ref rightval))
+                        n.bValue = leftval.strName.IndexOf(rightval.strName) >= 0? true:false ;
                     break;
                 case ASTNODE_TYPE.A_VAR: 
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
