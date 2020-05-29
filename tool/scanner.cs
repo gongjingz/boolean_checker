@@ -517,22 +517,23 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_SUBTRACT: 
                 case ASTNODE_TYPE.A_MULTIPLY: 
                 case ASTNODE_TYPE.A_DIVIDE:  
-                case ASTNODE_TYPE.A_EQUALEQUAL: 
-                case ASTNODE_TYPE.A_NOTEQUAL: 
                 case ASTNODE_TYPE.A_LESSTHAN: 
                 case ASTNODE_TYPE.A_LESSEQUAL: 
                 case ASTNODE_TYPE.A_LARGETHAN: 
                 case ASTNODE_TYPE.A_LARGEEQUAL: 
+                    if (!isDigitNode(leftval))
+                        throw new ArgumentException("Syntax error, field " +  leftval.op );
+                    if (!isDigitNode(rightval))
+                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                    return true; 
+                case ASTNODE_TYPE.A_EQUALEQUAL: 
+                case ASTNODE_TYPE.A_NOTEQUAL: 
                 case ASTNODE_TYPE.A_LIKE: 
                     if (!isValueNode(leftval))
                         throw new ArgumentException("Syntax error, field " +  leftval.op );
                     if (!isValueNode(rightval))
                         throw new ArgumentException("Syntax error, field " +  rightval.op );
                     return true; 
-                        
-                case ASTNODE_TYPE.A_INTLIT:   
-                    //n.bValue = n.intValue > 0? true:false;
-                    return true;
                 case ASTNODE_TYPE.A_LRND: 
                     n.intValue = leftval.intValue;
                     n.bValue = leftval.bValue;
@@ -547,21 +548,18 @@ namespace ast.tool
                     if (!isLogicNode(rightval))
                         throw new ArgumentException("Syntax error, field " +  rightval.op );
                     return true; 
-                    
                 case ASTNODE_TYPE.A_VAR: 
-                    //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
-                    
-                    break;
+                case ASTNODE_TYPE.A_INTLIT:   
                 case ASTNODE_TYPE.A_STR: 
-                    //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
-                    break;
+                    return true;
+                    //break;
                 default:
                     throw new ArgumentException("Syntax error, field " +  n.op );
                     //return false;
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
                 //return true;
             }
-            return true;
+            //return true;
         }
 
         public bool isLogicNode(AstNode n)
@@ -580,6 +578,26 @@ namespace ast.tool
                 return false;
         }
 
+        public bool isComputeNode(AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_ADD ||
+                n.op == ASTNODE_TYPE.A_SUBTRACT ||
+                n.op == ASTNODE_TYPE.A_MULTIPLY ||
+                n.op == ASTNODE_TYPE.A_DIVIDE)
+                return true;
+            else    
+                return false;
+        }
+        //检测是否为数字节点
+        public bool isDigitNode(AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_VAR ||
+                n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n))
+                return true;
+            else    
+                return false;
+        }
+
         public bool isValueNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR ||
@@ -590,31 +608,53 @@ namespace ast.tool
                 return false;
         }
 
+        public bool parseVartoInt(ref AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_VAR) 
+            {
+                if(!int.TryParse(n.strName, out n.intValue))
+                    throw new ArgumentException("Syntax error, invalid number " +  n.strName );
+                else
+                    return true;
+            }
+            if (n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n))
+                return true;
+            throw new ArgumentException("Syntax error, invalid number " +  n.strName );
+        }
+
 
         public void interpretAST2(ref AstNode n) {
+            //if (!checkAST(ref n))
+            //{
+            //    return;
+            //}
             AstNode leftval , rightval ;
-
             if (n.leftLeaf != null)  interpretAST2(ref n.leftLeaf);
             if (n.rightLeaf != null)  interpretAST2(ref n.rightLeaf);
             leftval = n.leftLeaf;
             rightval = n.rightLeaf;
             switch (n.op) {
-                case ASTNODE_TYPE.A_ADD:      
-                    n.intValue = leftval.intValue + rightval.intValue;
+                case ASTNODE_TYPE.A_ADD:    
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.intValue = leftval.intValue + rightval.intValue;
                     break;
                 case ASTNODE_TYPE.A_SUBTRACT: 
-                    n.intValue = leftval.intValue - rightval.intValue;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.intValue = leftval.intValue - rightval.intValue;
                     break;
                 case ASTNODE_TYPE.A_MULTIPLY: 
-                    n.intValue = leftval.intValue * rightval.intValue;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.intValue = leftval.intValue * rightval.intValue;
                     break;
                 case ASTNODE_TYPE.A_DIVIDE:  
-                    n.intValue = leftval.intValue / rightval.intValue;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.intValue = leftval.intValue / rightval.intValue;
                     break;
                 case ASTNODE_TYPE.A_INTLIT:   
                     n.bValue = n.intValue > 0? true:false;
                     return ;
                 case ASTNODE_TYPE.A_LRND: 
+                    //左括号时，取左叶的值到当前节点
                     n.intValue = leftval.intValue;
                     n.bValue = leftval.bValue;
                     n.strName = leftval.strName;
@@ -628,22 +668,73 @@ namespace ast.tool
                     n.bValue = leftval.bValue  || rightval.bValue;
                     break;
                 case ASTNODE_TYPE.A_EQUALEQUAL: 
-                    n.bValue = leftval.bValue  == rightval.bValue?true:false;
+                    if (leftval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(leftval))
+                    {
+                        if (rightval.op == ASTNODE_TYPE.A_VAR) {
+                            parseVartoInt(ref rightval);
+                            n.bValue = leftval.intValue  == rightval.intValue ?true:false;
+                        }
+                        else if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval))
+                            n.bValue = leftval.intValue  == rightval.intValue ?true:false;
+                    }  
+                    else if (leftval.op == ASTNODE_TYPE.A_STR)
+                    {
+                        n.bValue = leftval.strName  == rightval.strName ?true:false;
+                    }  
+                    else if (leftval.op == ASTNODE_TYPE.A_VAR)
+                    {
+                        if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval)) {
+                            parseVartoInt(ref leftval);
+                            n.bValue = leftval.intValue  == rightval.intValue ?true:false;
+                        }
+                        else if (rightval.op == ASTNODE_TYPE.A_VAR || rightval.op == ASTNODE_TYPE.A_STR)
+                        {
+                            n.bValue = leftval.strName  == rightval.strName ?true:false;
+                        }
+                    }
+                    //n.bValue = leftval.bValue  == rightval.bValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_NOTEQUAL: 
-                    n.bValue = leftval.bValue  != rightval.bValue?true:false;
+                    if (leftval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(leftval))
+                    {
+                        if (rightval.op == ASTNODE_TYPE.A_VAR) {
+                            parseVartoInt(ref rightval);
+                            n.bValue = leftval.intValue  != rightval.intValue ?true:false;
+                        }
+                        else if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval))
+                            n.bValue = leftval.intValue  != rightval.intValue ?true:false;
+                    }  
+                    else if (leftval.op == ASTNODE_TYPE.A_STR)
+                    {
+                        n.bValue = leftval.strName  != rightval.strName ?true:false;
+                    }  
+                    else if (leftval.op == ASTNODE_TYPE.A_VAR)
+                    {
+                        if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval)) {
+                            parseVartoInt(ref leftval);
+                            n.bValue = leftval.intValue  != rightval.intValue ?true:false;
+                        }
+                        else if (rightval.op == ASTNODE_TYPE.A_VAR || rightval.op == ASTNODE_TYPE.A_STR)
+                        {
+                            n.bValue = leftval.strName  != rightval.strName ?true:false;
+                        }
+                    }
                     break;
                 case ASTNODE_TYPE.A_LESSTHAN: 
-                    n.bValue = (leftval.intValue  < rightval.intValue ) ?true:false;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.bValue = (leftval.intValue  < rightval.intValue ) ?true:false;
                     break;
                 case ASTNODE_TYPE.A_LESSEQUAL: 
-                    n.bValue = leftval.intValue  <= rightval.intValue?true:false;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.bValue = leftval.intValue  <= rightval.intValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_LARGETHAN: 
-                    n.bValue = leftval.intValue  > rightval.intValue?true:false;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.bValue = leftval.intValue  > rightval.intValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_LARGEEQUAL: 
-                    n.bValue = leftval.intValue  >= rightval.intValue?true:false;
+                    if (parseVartoInt(ref leftval) && parseVartoInt(ref rightval))
+                        n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_LIKE: 
                     n.bValue = leftval.strName.IndexOf(rightval.strName) >= 0? true:false ;

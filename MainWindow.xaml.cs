@@ -48,8 +48,6 @@ namespace ast
                     MessageBox.Show("rule is ok");
                 else
                     MessageBox.Show("rule is not ok");
-                //scanner.setJson(strValue);
-                //scanner.interpretAST2(ref node);
             } catch (Exception e)
             {
                 MessageBox.Show("Rule format wrong " + e.Message);
