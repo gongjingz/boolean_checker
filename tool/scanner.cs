@@ -352,17 +352,17 @@ namespace ast.tool
 
         public AstNode mksubstr(ref Token token)
         {
-            AstNode left, right;
+            AstNode left; //, right;
             int ptp = 0;
-            scan(ref token);
+            scan(ref token); //skip "SUBSTR"
             if (token.token == TOKEN_TYPE.T_LRND) {
-                scan(ref token);
+                scan(ref token); //skip "("
                 left = binexpr(ptp, ref token);
                 if (token.token == TOKEN_TYPE.T_RRND)
                 {
-                    right = AstNode.mkNodewithNoLeaf(ASTNODE_TYPE.A_RRND);
-                    left = AstNode.mkNode(ASTNODE_TYPE.A_SUBSTR, left, right, 0, "");
-                    scan(ref token);
+                    //right = AstNode.mkNodewithNoLeaf(ASTNODE_TYPE.A_RRND);
+                    left = AstNode.mkNode(ASTNODE_TYPE.A_SUBSTR, left.leftLeaf, left.rightLeaf, 0, "");
+                    scan(ref token); //skip ")"
                     return left;
                 }
             }
@@ -588,7 +588,7 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_COMMA: 
                     return true;
                 case ASTNODE_TYPE.A_SUBSTR: 
-                    if (!isSubstrNode(leftval))
+                    if (!isSubstrNode(n))
                         throw new ArgumentException("Syntax error, field " +  descAstNode(leftval) );
                     return true;
                     //break;
@@ -605,11 +605,11 @@ namespace ast.tool
 
         public bool isSubstrNode(AstNode n)
         {
-            if (n.op == ASTNODE_TYPE.A_COMMA && n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
+            if (n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
                 if (isDigitNode(n.rightLeaf) && isDigitNode(n.leftLeaf.rightLeaf) && isValueNode(n.leftLeaf.leftLeaf))
                     return true;
             }
-            throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a logic node" );
+            throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a substr node" );
                 //return false;
         }
         public bool isLogicNode(AstNode n)
@@ -661,7 +661,7 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_LARGEEQUAL: return (leftval + " >=" + rightval);
                 case ASTNODE_TYPE.A_LIKE: return leftval + " LIKE "  + rightval;
                 case ASTNODE_TYPE.A_COMMA: return leftval + " , "  + rightval;
-                case ASTNODE_TYPE.A_SUBSTR: return "SUBSTR(" + leftval + ")";
+                case ASTNODE_TYPE.A_SUBSTR: return "SUBSTR(" + leftval + "," + rightval + ")";
                 default:
                 Console.WriteLine( "Unknown AST operator {0:G}", n.op);
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
@@ -881,10 +881,12 @@ namespace ast.tool
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 case ASTNODE_TYPE.A_SUBSTR:
-                    String original_str = n.leftLeaf.leftLeaf.leftLeaf.strName;
-                    int istart = n.leftLeaf.leftLeaf.rightLeaf.intValue;
-                    int ilen = n.leftLeaf.rightLeaf.intValue;
-                    n.strName = original_str.Substring(istart, ilen);
+                    if (isSubstrNode(n)) {
+                        String original_str = n.leftLeaf.leftLeaf.strName;
+                        int istart = n.leftLeaf.rightLeaf.intValue;
+                        int ilen = n.rightLeaf.intValue;
+                        n.strName = original_str.Substring(istart, ilen);
+                    }
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 default:
