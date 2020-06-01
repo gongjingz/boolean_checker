@@ -606,11 +606,17 @@ namespace ast.tool
         public bool isSubstrNode(AstNode n)
         {
             if (n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
+                //substr(istr, istart, ilen)
                 if (isDigitNode(n.rightLeaf) && isDigitNode(n.leftLeaf.rightLeaf) && isValueNode(n.leftLeaf.leftLeaf))
                     return true;
             }
+            else if (isValueNode(n.leftLeaf) && isDigitNode(n.rightLeaf))
+            {
+                //substr(istr, istart)
+                return true;
+            }
             throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a substr node" );
-                //return false;
+            //return false;
         }
         public bool isLogicNode(AstNode n)
         {
@@ -882,10 +888,17 @@ namespace ast.tool
                     break;
                 case ASTNODE_TYPE.A_SUBSTR:
                     if (isSubstrNode(n)) {
-                        String original_str = n.leftLeaf.leftLeaf.strName;
-                        int istart = n.leftLeaf.rightLeaf.intValue;
-                        int ilen = n.rightLeaf.intValue;
-                        n.strName = original_str.Substring(istart, ilen);
+                        if (n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
+                            String original_str = n.leftLeaf.leftLeaf.strName;
+                            int istart = n.leftLeaf.rightLeaf.intValue;
+                            int ilen = n.rightLeaf.intValue;
+                            n.strName = original_str.Substring(istart, ilen);
+                        }
+                        else {
+                            String original_str = n.leftLeaf.strName;
+                            int istart = n.rightLeaf.intValue;
+                            n.strName = original_str.Substring(istart);
+                        }
                     }
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;

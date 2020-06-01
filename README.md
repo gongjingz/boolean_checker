@@ -18,9 +18,11 @@ Should support：
 
 2.logic operators like 'AND' and 'OR' and 'LIKE' and '==' and '!=' and '>' and '<' and '>=' and '<='
 
-3.Parentheses （ and )
+3.Parentheses ( and )
 
 4.Able to check the rule is syntax correct.
 
 5.replace [field] with real value by a json input, do boolean check and return TRUE or FALSE
+
+6.Support inline function: substr(str, istart, ilen)
 
