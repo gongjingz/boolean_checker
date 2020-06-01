@@ -22,7 +22,9 @@ Should support：
 
 4.Able to check the rule is syntax correct.
 
-5.replace [field] with real value by a json input, do boolean check and return TRUE or FALSE
+5.Support inline function: substr(str, istart, ilen) and substr(str, istart)
 
-6.Support inline function: substr(str, istart, ilen) and substr(str, istart)
+6.replace [field] with real value by a json input, do boolean check and return TRUE or FALSE
+
+
 
