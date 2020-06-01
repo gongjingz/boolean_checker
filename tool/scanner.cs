@@ -180,6 +180,8 @@ namespace ast.tool
                 //break;
                 case "PRINT":
                 return (TOKEN_TYPE.T_PRINT);
+                case "SUBSTR":
+                return (TOKEN_TYPE.T_SUBSTR);
                 //break;
                 case "AND":
                 return (TOKEN_TYPE.T_AND);
@@ -220,6 +222,9 @@ namespace ast.tool
                     break;
                 case ')':
                     t.token = TOKEN_TYPE.T_RRND;
+                    break;
+                case ',':
+                    t.token = TOKEN_TYPE.T_COMMA;
                     break;
                 case '=':
                     if ((c = next()) == '=') {
@@ -345,6 +350,29 @@ namespace ast.tool
             
         }
 
+        public AstNode mksubstr(ref Token token)
+        {
+            AstNode left, right;
+            int ptp = 0;
+            scan(ref token);
+            if (token.token == TOKEN_TYPE.T_LRND) {
+                scan(ref token);
+                left = binexpr(ptp, ref token);
+                if (token.token == TOKEN_TYPE.T_RRND)
+                {
+                    right = AstNode.mkNodewithNoLeaf(ASTNODE_TYPE.A_RRND);
+                    left = AstNode.mkNode(ASTNODE_TYPE.A_SUBSTR, left, right, 0, "");
+                    scan(ref token);
+                    return left;
+                }
+            }
+
+                //Console.WriteLine("invalid round");
+                throw new ArgumentException("invalid parenthesis at position " + ipos);
+                //return null;
+            
+        }
+
         //二元操作符处理
         public AstNode binexpr(int ptp, ref Token token) {
             AstNode left, right;
@@ -353,10 +381,14 @@ namespace ast.tool
                 //scan(ref token);
                 left = rnd(ref token);
             }
+            else if (token.token == TOKEN_TYPE.T_SUBSTR)
+            {
+                left = mksubstr(ref token);
+            }
             else 
             // Get the integer literal on the left.
             // Fetch the next token at the same time.
-            left = primary(ref token);
+                left = primary(ref token);
             // If no tokens left, return just the left node
             tokentype = token.token;
             if (tokentype == TOKEN_TYPE.T_EOF || tokentype == TOKEN_TYPE.T_RRND)
@@ -451,8 +483,9 @@ namespace ast.tool
             20,		// A_LIKE,
             0, 0,  //A_LRND, A_RRND,
             10,        //A_EQUAL
-            0, 0    //T_VAR,T_STR,
-
+            0, 0,    //T_VAR,T_STR,
+            20, //T_SUBSTR
+            1   //T_COMMA
         };
 
         // Check that we have a binary operator and
@@ -499,6 +532,7 @@ namespace ast.tool
             }
         }
 
+        //check the rule 
         public bool checkAST(ref AstNode n) {
             AstNode leftval , rightval ;
 
@@ -522,39 +556,44 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_LARGETHAN: 
                 case ASTNODE_TYPE.A_LARGEEQUAL: 
                     if (!isDigitNode(leftval))
-                        throw new ArgumentException("Syntax error, field " +  leftval.op );
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(leftval));
                     if (!isDigitNode(rightval))
-                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(rightval) );
                     return true; 
                 case ASTNODE_TYPE.A_EQUALEQUAL: 
                 case ASTNODE_TYPE.A_NOTEQUAL: 
                 case ASTNODE_TYPE.A_LIKE: 
-                    if (!isValueNode(leftval))
-                        throw new ArgumentException("Syntax error, field " +  leftval.op );
-                    if (!isValueNode(rightval))
-                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                    if (!isValueNode(leftval) && !isComputeNode(leftval))
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(leftval) );
+                    if (!isValueNode(rightval) && !isComputeNode(rightval))
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(rightval) );
                     return true; 
                 case ASTNODE_TYPE.A_LRND: 
                     n.intValue = leftval.intValue;
                     n.bValue = leftval.bValue;
                     n.strName = leftval.strName;
-                    n.op = leftval.op;
+                    //n.op = leftval.op;
                     return true;
                 case ASTNODE_TYPE.A_RRND: return true;
                 case ASTNODE_TYPE.A_AND: 
                 case ASTNODE_TYPE.A_OR: 
                     if (!isLogicNode(leftval))
-                        throw new ArgumentException("Syntax error, field " +  leftval.op );
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(leftval) );
                     if (!isLogicNode(rightval))
-                        throw new ArgumentException("Syntax error, field " +  rightval.op );
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(rightval) );
                     return true; 
                 case ASTNODE_TYPE.A_VAR: 
                 case ASTNODE_TYPE.A_INTLIT:   
                 case ASTNODE_TYPE.A_STR: 
+                case ASTNODE_TYPE.A_COMMA: 
+                    return true;
+                case ASTNODE_TYPE.A_SUBSTR: 
+                    if (!isSubstrNode(leftval))
+                        throw new ArgumentException("Syntax error, field " +  descAstNode(leftval) );
                     return true;
                     //break;
                 default:
-                    throw new ArgumentException("Syntax error, field " +  n.op );
+                    throw new ArgumentException("Syntax error, field " +  descAstNode(n) );
                     //return false;
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
                 //return true;
@@ -562,6 +601,17 @@ namespace ast.tool
             //return true;
         }
 
+
+
+        public bool isSubstrNode(AstNode n)
+        {
+            if (n.op == ASTNODE_TYPE.A_COMMA && n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
+                if (isDigitNode(n.rightLeaf) && isDigitNode(n.leftLeaf.rightLeaf) && isValueNode(n.leftLeaf.leftLeaf))
+                    return true;
+            }
+            throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a logic node" );
+                //return false;
+        }
         public bool isLogicNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_AND ||
@@ -574,10 +624,53 @@ namespace ast.tool
                 n.op == ASTNODE_TYPE.A_LARGEEQUAL ||
                 n.op == ASTNODE_TYPE.A_LIKE)
                 return true;
-            else    
-                return false;
+            else if (n.op == ASTNODE_TYPE.A_LRND)
+            {
+                if (isLogicNode(n.leftLeaf))
+                {
+                    return true;
+                }
+            }
+            throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a logic node" );
+                //return false;
         }
 
+        //返回节点的描述,用于报错时定位
+        public String descAstNode(AstNode n)
+        {
+            String leftval = "", rightval ="";
+            if (n.leftLeaf != null)  leftval = descAstNode(n.leftLeaf);
+            if (n.rightLeaf != null)  rightval = descAstNode(n.rightLeaf);
+            switch (n.op) {
+                case ASTNODE_TYPE.A_ADD:      return (leftval + " + " + rightval);
+                case ASTNODE_TYPE.A_SUBTRACT: return (leftval + " - "  + rightval);
+                case ASTNODE_TYPE.A_MULTIPLY: return (leftval + " * " +  rightval);
+                case ASTNODE_TYPE.A_DIVIDE:   return (leftval + " / " + rightval);
+                case ASTNODE_TYPE.A_INTLIT:   return (n.intValue.ToString());
+                case ASTNODE_TYPE.A_STR:   return ("'" + n.strName + "'");
+                case ASTNODE_TYPE.A_VAR:   return ("[" + n.strName + "]");
+                case ASTNODE_TYPE.A_LRND: return "(" + leftval ;
+                case ASTNODE_TYPE.A_RRND: return " ) ";
+                case ASTNODE_TYPE.A_AND: return (leftval + " AND " + rightval);
+                case ASTNODE_TYPE.A_OR: return (leftval + " OR " + rightval);
+                case ASTNODE_TYPE.A_EQUALEQUAL: return (leftval + " == " + rightval);
+                case ASTNODE_TYPE.A_NOTEQUAL: return (leftval + " != " + rightval);
+                case ASTNODE_TYPE.A_LESSTHAN: return (leftval + " < " + rightval);
+                case ASTNODE_TYPE.A_LESSEQUAL: return (leftval + " <= " + rightval);
+                case ASTNODE_TYPE.A_LARGETHAN: return (leftval + " > " + rightval);
+                case ASTNODE_TYPE.A_LARGEEQUAL: return (leftval + " >=" + rightval);
+                case ASTNODE_TYPE.A_LIKE: return leftval + " LIKE "  + rightval;
+                case ASTNODE_TYPE.A_COMMA: return leftval + " , "  + rightval;
+                case ASTNODE_TYPE.A_SUBSTR: return "SUBSTR(" + leftval + ")";
+                default:
+                Console.WriteLine( "Unknown AST operator {0:G}", n.op);
+                //fprintf(stderr, "Unknown AST operator %d\n", n->op);
+                return("");
+            }
+
+        }
+
+        //判断节点是否为计算型节点
         public bool isComputeNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_ADD ||
@@ -585,8 +678,14 @@ namespace ast.tool
                 n.op == ASTNODE_TYPE.A_MULTIPLY ||
                 n.op == ASTNODE_TYPE.A_DIVIDE)
                 return true;
-            else    
-                return false;
+            else if (n.op == ASTNODE_TYPE.A_LRND)
+            {
+                if (isComputeNode(n.leftLeaf))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
         //检测是否为数字节点
         public bool isDigitNode(AstNode n)
@@ -594,37 +693,53 @@ namespace ast.tool
             if (n.op == ASTNODE_TYPE.A_VAR ||
                 n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n))
                 return true;
-            else    
-                return false;
+            else if (n.op == ASTNODE_TYPE.A_LRND)
+            {
+                if (isDigitNode(n.leftLeaf))
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
+        //判断节点是否为有值节点
         public bool isValueNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR ||
                 n.op == ASTNODE_TYPE.A_INTLIT ||
-                n.op == ASTNODE_TYPE.A_STR)
+                n.op == ASTNODE_TYPE.A_STR ||
+                n.op == ASTNODE_TYPE.A_SUBSTR)
                 return true;
-            else    
-                return false;
+            else if (n.op == ASTNODE_TYPE.A_LRND)
+            {
+                if (isValueNode(n.leftLeaf))
+                {
+                    return true;
+                }
+            }  
+            return false;
         }
 
+        //如果节点为数值型，取数值到strName中
         public bool parseVartoInt(ref AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR) 
             {
                 if(!int.TryParse(n.strName, out n.intValue))
-                    throw new ArgumentException("Syntax error, invalid number " +  n.strName );
+                    throw new ArgumentException("Syntax error, invalid number " +  descAstNode(n));
                 else
                     return true;
             }
             if (n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n))
                 return true;
-            throw new ArgumentException("Syntax error, invalid number " +  n.strName );
+            throw new ArgumentException("Syntax error, invalid number " +  descAstNode(n));
         }
 
+        //如果节点为数值型，取数值到strName中
         public bool parseVartoStr(ref AstNode n)
         {
-            if (n.op == ASTNODE_TYPE.A_VAR || n.op == ASTNODE_TYPE.A_STR) 
+            if (n.op == ASTNODE_TYPE.A_VAR || n.op == ASTNODE_TYPE.A_STR || n.op == ASTNODE_TYPE.A_SUBSTR) 
             {
                 return true;
             }
@@ -667,7 +782,7 @@ namespace ast.tool
                     n.intValue = leftval.intValue;
                     n.bValue = leftval.bValue;
                     n.strName = leftval.strName;
-                    n.op = leftval.op;
+                    //n.op = leftval.op;
                     return ;
                 case ASTNODE_TYPE.A_RRND: return ;
                 case ASTNODE_TYPE.A_AND: 
@@ -688,7 +803,7 @@ namespace ast.tool
                         else if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval))
                             n.bValue = leftval.intValue  == rightval.intValue ?true:false;
                     }  
-                    else if (leftval.op == ASTNODE_TYPE.A_STR)
+                    else if (leftval.op == ASTNODE_TYPE.A_STR || leftval.op == ASTNODE_TYPE.A_SUBSTR)
                     {
                         n.bValue = leftval.strName  == rightval.strName ?true:false;
                     }  
@@ -715,7 +830,7 @@ namespace ast.tool
                         else if (rightval.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(rightval))
                             n.bValue = leftval.intValue  != rightval.intValue ?true:false;
                     }  
-                    else if (leftval.op == ASTNODE_TYPE.A_STR)
+                    else if (leftval.op == ASTNODE_TYPE.A_STR || leftval.op == ASTNODE_TYPE.A_SUBSTR)
                     {
                         n.bValue = leftval.strName  != rightval.strName ?true:false;
                     }  
@@ -762,6 +877,14 @@ namespace ast.tool
                         n.strName = var_value;
                     break;
                 case ASTNODE_TYPE.A_STR: 
+                case ASTNODE_TYPE.A_COMMA:
+                    //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
+                    break;
+                case ASTNODE_TYPE.A_SUBSTR:
+                    String original_str = n.leftLeaf.leftLeaf.leftLeaf.strName;
+                    int istart = n.leftLeaf.leftLeaf.rightLeaf.intValue;
+                    int ilen = n.leftLeaf.rightLeaf.intValue;
+                    n.strName = original_str.Substring(istart, ilen);
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 default:

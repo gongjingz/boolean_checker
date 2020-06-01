@@ -12,6 +12,8 @@ namespace ast.tool
         T_LRND, T_RRND,
         T_EQUAL,
         T_VAR, T_STR,
+        T_SUBSTR,
+        T_COMMA,
         T_IF, T_ELSE,T_PRINT
 
     }
@@ -24,7 +26,9 @@ namespace ast.tool
         A_LIKE, 
         A_LRND, A_RRND,
         A_EQUAL,
-        A_VAR,A_STR
+        A_VAR,A_STR,
+        A_SUBSTR,
+        A_COMMA
     }
 
     //
