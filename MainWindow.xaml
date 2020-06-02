@@ -8,15 +8,15 @@
         Title="MainWindow" Height="450" Width="800">
     <Grid>
     <Canvas>
-        <Label Canvas.Left = "50" Canvas.Top="30" >规则</Label>
+        <Label Canvas.Left = "50" Canvas.Top="30" >Rule</Label>
         <TextBox Name="ts" Canvas.Left = "50" Canvas.Top="50" Width="500" TextWrapping="Wrap" Height="50" />
-        <Button Name="Mybutton" x:Click="Mybutton_click" Canvas.Left="50" Canvas.Top="100" Width="100" Height="30" >校验</Button>
+        <Button Name="Mybutton" x:Click="Mybutton_click" Canvas.Left="50" Canvas.Top="100" Width="100" Height="30" >check</Button>
     </Canvas>
     
     <Canvas>
-        <Label Canvas.Left = "50" Canvas.Top="130" >实际值</Label>
+        <Label Canvas.Left = "50" Canvas.Top="130" >Actual Value</Label>
         <TextBox Name="ts_json" Canvas.Left = "50" Canvas.Top="150" Width="500" TextWrapping="Wrap" Height="50" />
-        <Button Name="Mybutton2" x:Click="Mybutton2_click" Canvas.Left="50" Canvas.Top="200" Width="100" Height="30" >判断</Button>
+        <Button Name="Mybutton2" x:Click="Mybutton2_click" Canvas.Left="50" Canvas.Top="200" Width="100" Height="30" >validate</Button>
     </Canvas>
     </Grid>
 
