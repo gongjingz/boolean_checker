@@ -13,8 +13,8 @@ namespace ast.tool
         T_EQUAL,
         T_VAR, T_STR,
         T_SUBSTR,
-        T_COMMA,
-        T_IF, T_ELSE,T_PRINT
+        T_COMMA
+        //T_IF, T_ELSE,T_PRINT
 
     }
 
