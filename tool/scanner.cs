@@ -172,14 +172,14 @@ namespace ast.tool
         static TOKEN_TYPE keyword(String buf) {
            switch (buf.ToUpper()) {
                
-                case "ELSE":
-                return (TOKEN_TYPE.T_ELSE);
+                //case "ELSE":
+                //return (TOKEN_TYPE.T_ELSE);
                 //break;
-                case "IF":
-                return (TOKEN_TYPE.T_IF);
+                //case "IF":
+                //return (TOKEN_TYPE.T_IF);
                 //break;
-                case "PRINT":
-                return (TOKEN_TYPE.T_PRINT);
+                //case "PRINT":
+                //return (TOKEN_TYPE.T_PRINT);
                 case "SUBSTR":
                 return (TOKEN_TYPE.T_SUBSTR);
                 //break;
