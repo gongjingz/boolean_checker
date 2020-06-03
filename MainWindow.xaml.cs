@@ -38,13 +38,8 @@ namespace ast
             String test_str = ts.Text;
 
             Scanner scanner = new Scanner(test_str);
-
-            Token token = new Token();
-            AstNode node;
             try {
-                scanner.scan(ref token);
-                node = scanner.binexpr(0, ref token);
-                if (scanner.checkAST(ref node))
+                if (scanner.checkRule())
                     MessageBox.Show("rule is ok");
                 else
                     MessageBox.Show("rule is not ok");
@@ -57,19 +52,12 @@ namespace ast
 
         public void Mybutton2_click(object sender, RoutedEventArgs a)
         {
-            String strValue = ts_json.Text;
-            String test_str = ts.Text;
+            String strValue = ts_json.Text;  //actual value from json
+            String test_str = ts.Text;      //rule text
 
             Scanner scanner = new Scanner(test_str);
-
-            Token token = new Token();
-            AstNode node;
             try {
-                scanner.scan(ref token);
-                node = scanner.binexpr(0, ref token);
-                scanner.setJson(strValue);
-                scanner.interpretAST2(ref node);
-                if (node.bValue == true)
+                if (scanner.validateRule(strValue))
                 {
                     MessageBox.Show("rule evaluated : True");
                 }

@@ -30,14 +30,9 @@ Initialize the scanner with the rule text
 Scanner scanner = new Scanner(rule_text);
 
 1.check the rule is syntax correct for save, exception should raised if syntax error
-scanner.scan(ref token);
-node = scanner.binexpr(0, ref token);
-scanner.checkAST(ref node);
+scanner.checkRule();
 
 
 2.check the rule with actual value to get TURE or FALSE
-scanner.scan(ref token);
-node = scanner.binexpr(0, ref token);
-scanner.setJson(strJson);
-scanner.interpretAST2(ref node);
+scanner.validateRule(json_str);
 

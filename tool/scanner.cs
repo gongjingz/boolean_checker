@@ -26,12 +26,34 @@ namespace ast.tool
             value_dic = new Dictionary<String, String>();
         }
 
-        public void setJson(String json_str)
+        //precedency of all the node type
+        private int[] OpPrec = {
+            0, 10, 10,			// T_EOF, A_AND = 1, A_OR
+            20, 20,	30, 30, 0,		// A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_INTLIT
+            11, 11,	11, 11, 11, 11,		// A_EQUALEQUAL, A_NOTEQUAL, A_LESSTHAN, A_LESSEQUAL, A_LARGETHAN, A_LARGEEQUAL, 
+            20,		// A_LIKE,
+            0, 0,  //A_LRND, A_RRND,
+            10,        //A_EQUAL
+            0, 0,    //T_VAR,T_STR,
+            20, //T_SUBSTR
+            1   //T_COMMA
+        };
+
+        //set actual field value from json
+        private void setJson(String json_str)
         {
             String temp_name = "";
+            this.json_str = json_str;
             JsonTextReader reader = new JsonTextReader(new StringReader(json_str));
+            reader.Read();
+            if (reader.TokenType != JsonToken.StartObject)
+            {
+                 throw new ArgumentException("invalid Json format line: " + reader.LineNumber + " position:" + reader.LinePosition);
+            }
             while (reader.Read())
             {
+                if (reader.TokenType == JsonToken.EndObject)
+                    return;
                 if (reader.Value != null)
                 {
                     if (reader.TokenType == JsonToken.PropertyName)
@@ -45,17 +67,17 @@ namespace ast.tool
                             temp_name = "";
                         }
                     }
-                    Console.WriteLine("Token: {0}, Value: {1}", reader.TokenType, reader.Value);
-                }
-                else
-                {
-                    Console.WriteLine("Token: {0}", reader.TokenType);
-                }
+                    //throw new ArgumentException("invalid json format Token: " + reader.TokenType + " Value: " + reader.Value);
+                }               
             }
-            this.json_str = json_str;
+            if (reader.TokenType != JsonToken.EndObject)
+            {
+                 throw new ArgumentException("invalid Json format line: " + reader.LineNumber + " position:" + reader.LinePosition);
+            }
         }
 
-        public int next()
+        //get the next char from rule text
+        private int next()
         {
             int c;
 
@@ -76,12 +98,14 @@ namespace ast.tool
             return c;
         }
 
-        public void putback(int c) 
+        //put one char back 
+        private void putback(int c) 
         {
             this.Putback  = c;
         }
 
-        public int skip()
+        //skip space and \r\n\t\f in the rule text
+        private int skip()
         {
             int c;
             c = next();
@@ -93,8 +117,8 @@ namespace ast.tool
 
         }
 
-        //
-        public int scanident(int c, out String buf, int lim = 128) {
+        //scan identifier in the rule text, such as [field1]
+        private int scanident(int c, out String buf, int lim = 128) {
             int i = 0;
             c = next();
             StringBuilder strbuilder = new StringBuilder(20);
@@ -103,7 +127,7 @@ namespace ast.tool
                 // Error if we hit the identifier length limit,
                 // else append to buf[] and get next character
                 if (lim - 1 == i) {
-                    Console.WriteLine("identifier too long on line {0:G}", iLine);
+                    throw new ArgumentException("identifier too long on line " +  iLine);
                     //sexit(1);
                 } else if (i < lim - 1) {
                     strbuilder.Append((char)c);
@@ -112,13 +136,13 @@ namespace ast.tool
             }
             if (']' != c)
             {
-                Console.WriteLine("identifier definition not end", iLine);
+                throw new ArgumentException("identifier definition not end" + iLine);
             }
             buf = strbuilder.ToString();
             return (i);
         }
 
-        //取一个字符串
+        //scan str enclosed by single quotation mark in the rule text, such as 'CN'
         public int scanstr(int c, out String buf, int lim = 128) {
             int i = 0;
             c = next();
@@ -128,7 +152,7 @@ namespace ast.tool
                 // Error if we hit the identifier length limit,
                 // else append to buf[] and get next character
                 if (lim - 1 == i) {
-                    Console.WriteLine("identifier too long on line {0:G}", iLine);
+                    throw new ArgumentException("identifier too long on line " +  iLine);
                     //sexit(1);
                 } else if (i < lim - 1) {
                     strbuilder.Append((char)c);
@@ -137,7 +161,7 @@ namespace ast.tool
             }
             if ('\'' != c)
             {
-                Console.WriteLine("identifier definition not end", iLine);
+                //Console.WriteLine("identifier definition not end", iLine);
                 throw new ArgumentException("identifier definition not end at position:" +  ipos);
             }
 
@@ -145,6 +169,7 @@ namespace ast.tool
             return (i);
         }
 
+        //scan keyword in the rule text, such as 'like' or 'substr'
         public int scankeyword(int c, out String buf, int lim = 128) {
         int i = 0;
         StringBuilder strbuilder = new StringBuilder(20);
@@ -153,7 +178,7 @@ namespace ast.tool
             // Error if we hit the identifier length limit,
             // else append to buf[] and get next character
             if (lim - 1 == i) {
-                Console.WriteLine("identifier too long on line {0:G}", iLine);
+                throw new ArgumentException("identifier too long on line " + iLine);
                 //sexit(1);
             } else if (i < lim - 1) {
                 strbuilder.Append((char)c);
@@ -169,7 +194,23 @@ namespace ast.tool
         return (i);
         }
 
-        static TOKEN_TYPE keyword(String buf) {
+        //scan int from the rule text , such as 10,100
+        public int scanint(int c) {
+            int k, val = 0;
+
+            // Convert each character into an int value
+            while ((k = chrpos("0123456789", c)) >= 0) {
+                val = val * 10 + k;
+                c = next();
+            }
+
+            // We hit a non-integer character, put it back.
+            putback(c);
+            return val;
+        }        
+
+        //get the token type 
+        private TOKEN_TYPE keyword(String buf) {
            switch (buf.ToUpper()) {
                
                 //case "ELSE":
@@ -196,7 +237,8 @@ namespace ast.tool
             return (0);
         }
 
-        public int scan(ref Token t)
+        //scan the whole text for the next token
+        private int scan(ref Token t)
         {
             int c;
             t = new Token();
@@ -231,7 +273,7 @@ namespace ast.tool
                         t.token = TOKEN_TYPE.T_EQUALEQUAL;
                     } else {
                         putback(c);
-                         throw new ArgumentException("Unrecognised character " + (char)c + " on line " + iLine
+                        throw new ArgumentException("Unrecognised character " + (char)c + " on line " + iLine
                         + " at position " + ipos);
                     }
                     break;
@@ -302,19 +344,7 @@ namespace ast.tool
             return 1;
         }
 
-        public int scanint(int c) {
-            int k, val = 0;
-
-            // Convert each character into an int value
-            while ((k = chrpos("0123456789", c)) >= 0) {
-                val = val * 10 + k;
-                c = next();
-            }
-
-            // We hit a non-integer character, put it back.
-            putback(c);
-            return val;
-        }            
+            
 
         private int chrpos(String s, int c) {
             int p;
@@ -327,8 +357,8 @@ namespace ast.tool
                 return - 1;
         }
 
-        //括号处理
-        public AstNode rnd(ref Token token)
+        //when parenthesis
+        private AstNode rnd(ref Token token)
         {
             AstNode left, right;
             int ptp = 0;
@@ -350,6 +380,7 @@ namespace ast.tool
             
         }
 
+        //for substr function in the rule text
         public AstNode mksubstr(ref Token token)
         {
             AstNode left; //, right;
@@ -373,8 +404,8 @@ namespace ast.tool
             
         }
 
-        //二元操作符处理
-        public AstNode binexpr(int ptp, ref Token token) {
+        //generate the ast tree
+        private AstNode binexpr(int ptp, ref Token token) {
             AstNode left, right;
             TOKEN_TYPE tokentype;
             if (token.token == TOKEN_TYPE.T_LRND) {
@@ -422,7 +453,8 @@ namespace ast.tool
             return (left);
         }
 
-        public AstNode primary(ref Token token) {
+        //get the left leaf of an operator
+        private AstNode primary(ref Token token) {
             AstNode n;
             // For an INTLIT token, make a leaf AST node for it
             // and scan in the next token. Otherwise, a syntax error
@@ -476,24 +508,13 @@ namespace ast.tool
         //A_LIKE, 
         //A_LRND, A_RRND,
         //A_EQUAL
-        private int[] OpPrec = {
-            0, 10, 10,			// T_EOF, A_AND = 1, A_OR
-            20, 20,	30, 30, 0,		// A_ADD, A_SUBTRACT, A_MULTIPLY, A_DIVIDE, A_INTLIT
-            11, 11,	11, 11, 11, 11,		// A_EQUALEQUAL, A_NOTEQUAL, A_LESSTHAN, A_LESSEQUAL, A_LARGETHAN, A_LARGEEQUAL, 
-            20,		// A_LIKE,
-            0, 0,  //A_LRND, A_RRND,
-            10,        //A_EQUAL
-            0, 0,    //T_VAR,T_STR,
-            20, //T_SUBSTR
-            1   //T_COMMA
-        };
 
         // Check that we have a binary operator and
         // return its precedence.
-        public int op_precedence(TOKEN_TYPE tokentype) {
+        private int op_precedence(TOKEN_TYPE tokentype) {
             int prec = OpPrec[(int)tokentype];
             if (prec == 0) {
-                Console.WriteLine("Syntax error, token {0:G}", tokentype);
+                //Console.WriteLine("Syntax error, token {0:G}", tokentype);
                 throw new ArgumentException("Syntax error, token " +  tokentype + " at position " + ipos);
             }
                 //fatald("Syntax error, token", tokentype);
@@ -502,7 +523,7 @@ namespace ast.tool
 
         
 
-        public int interpretAST(AstNode n) {
+        private int interpretAST(AstNode n) {
             int leftval = 0, rightval = 0;
 
             if (n.leftLeaf != null) leftval = interpretAST(n.leftLeaf);
@@ -526,12 +547,25 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_LARGEEQUAL: return Convert.ToInt32(leftval  >= rightval?true:false);
                 //case ASTNODE_TYPE.A_LIKE: return leftval.
                 default:
-                Console.WriteLine( "Unknown AST operator {0:G}", n.op);
+                    throw new ArgumentException("Unknown AST operator " +  n.op);
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
-                return(1);
+                //return(1);
             }
         }
 
+
+        //check the rule sequence
+        public bool checkRule()
+        {
+            Token token = new Token();
+            AstNode node;
+            scan(ref token);
+            node = binexpr(0, ref token);
+            if (checkAST(ref node))
+                return true;
+            else
+                return false;
+        }
         //check the rule 
         public bool checkAST(ref AstNode n) {
             AstNode leftval , rightval ;
@@ -602,8 +636,8 @@ namespace ast.tool
         }
 
 
-
-        public bool isSubstrNode(AstNode n)
+        //check if the node is substr functions
+        private bool isSubstrNode(AstNode n)
         {
             if (n.leftLeaf.op == ASTNODE_TYPE.A_COMMA) {
                 //substr(istr, istart, ilen)
@@ -618,7 +652,9 @@ namespace ast.tool
             throw new ArgumentException("Syntax error, field " +  descAstNode(n) + " not a substr node" );
             //return false;
         }
-        public bool isLogicNode(AstNode n)
+
+        //check the node is a logic node
+        private bool isLogicNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_AND ||
                 n.op == ASTNODE_TYPE.A_OR ||
@@ -641,8 +677,8 @@ namespace ast.tool
                 //return false;
         }
 
-        //返回节点的描述,用于报错时定位
-        public String descAstNode(AstNode n)
+        //describe the node with full text
+        private String descAstNode(AstNode n)
         {
             String leftval = "", rightval ="";
             if (n.leftLeaf != null)  leftval = descAstNode(n.leftLeaf);
@@ -669,15 +705,15 @@ namespace ast.tool
                 case ASTNODE_TYPE.A_COMMA: return leftval + " , "  + rightval;
                 case ASTNODE_TYPE.A_SUBSTR: return "SUBSTR(" + leftval + "," + rightval + ")";
                 default:
-                Console.WriteLine( "Unknown AST operator {0:G}", n.op);
+                    throw new ArgumentException("Unknown AST operator " +  n.op);
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
-                return("");
+                //return("");
             }
 
         }
 
-        //判断节点是否为计算型节点
-        public bool isComputeNode(AstNode n)
+        //check the node is a computation node
+        private bool isComputeNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_ADD ||
                 n.op == ASTNODE_TYPE.A_SUBTRACT ||
@@ -693,8 +729,8 @@ namespace ast.tool
             }
             return false;
         }
-        //检测是否为数字节点
-        public bool isDigitNode(AstNode n)
+        ////check the node is a digit node
+        private bool isDigitNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR ||
                 n.op == ASTNODE_TYPE.A_INTLIT || isComputeNode(n))
@@ -709,8 +745,8 @@ namespace ast.tool
             return false;
         }
 
-        //判断节点是否为有值节点
-        public bool isValueNode(AstNode n)
+        ////check the node is a value node
+        private bool isValueNode(AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR ||
                 n.op == ASTNODE_TYPE.A_INTLIT ||
@@ -727,8 +763,8 @@ namespace ast.tool
             return false;
         }
 
-        //如果节点为数值型，取数值到strName中
-        public bool parseVartoInt(ref AstNode n)
+        //if a node is a digit node, try parse the strName to intValue
+        private bool parseVartoInt(ref AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR) 
             {
@@ -742,8 +778,8 @@ namespace ast.tool
             throw new ArgumentException("Syntax error, invalid number " +  descAstNode(n));
         }
 
-        //如果节点为数值型，取数值到strName中
-        public bool parseVartoStr(ref AstNode n)
+        ////if a node is a value node, try parse the  intValue to strName 
+        private bool parseVartoStr(ref AstNode n)
         {
             if (n.op == ASTNODE_TYPE.A_VAR || n.op == ASTNODE_TYPE.A_STR || n.op == ASTNODE_TYPE.A_SUBSTR) 
             {
@@ -756,8 +792,27 @@ namespace ast.tool
             throw new ArgumentException("Syntax error, invalid parameter " +  n.op );
         }
 
+        //validate rule with actual value in json
+        public bool validateRule(String json_str)
+        {
+            Token token = new Token();
+            AstNode node;
+            setJson(json_str);
+            scan(ref token);
+            node = binexpr(0, ref token);
+            interpretAST2(ref node);
+            if (node.bValue == true)
+            {
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
 
-        public void interpretAST2(ref AstNode n) {
+        //interpret rule with actual value
+        private void interpretAST2(ref AstNode n) {
             AstNode leftval , rightval ;
             if (n.leftLeaf != null)  interpretAST2(ref n.leftLeaf);
             if (n.rightLeaf != null)  interpretAST2(ref n.rightLeaf);
@@ -903,9 +958,9 @@ namespace ast.tool
                     //n.bValue = leftval.intValue  >= rightval.intValue?true:false;
                     break;
                 default:
-                Console.WriteLine( "Unknown AST operator {0:G}", n.op);
+                    throw new ArgumentException("Unknown AST operator " + n.op);
                 //fprintf(stderr, "Unknown AST operator %d\n", n->op);
-                return;
+                //return;
             }
         }
 
